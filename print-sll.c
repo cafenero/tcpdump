@@ -115,11 +115,13 @@ struct sll2_header {
  * available even on systems other than Linux, and so that they
  * don't change even if the PACKET_ values change.
  */
-#define LINUX_SLL_HOST		0
+
+
+#define LINUX_SLL_HOST		0 // IN
 #define LINUX_SLL_BROADCAST	1
 #define LINUX_SLL_MULTICAST	2
 #define LINUX_SLL_OTHERHOST	3
-#define LINUX_SLL_OUTGOING	4
+#define LINUX_SLL_OUTGOING	4 // OUT
 
 /*
  * The LINUX_SLL_ values for "sll_protocol"; these correspond to the
@@ -341,6 +343,10 @@ recurse:
 static void
 sll2_print(netdissect_options *ndo, const struct sll2_header *sllp, u_int length)
 {
+
+    ND_PRINT("sll2_print");
+    ND_PRINT("sll2_print");
+    ND_PRINT("sll2_print");
 	u_short ether_type;
 
 	ndo->ndo_protocol = "sll2";
@@ -391,6 +397,7 @@ sll2_print(netdissect_options *ndo, const struct sll2_header *sllp, u_int length
 			    ether_type);
 		}
 		ND_PRINT(", length %u: ", length);
+		/* ND_PRINT(", length hoge %u: ", length); */
 	}
 }
 
@@ -403,10 +410,12 @@ sll2_print(netdissect_options *ndo, const struct sll2_header *sllp, u_int length
 void
 sll2_if_print(netdissect_options *ndo, const struct pcap_pkthdr *h, const u_char *p)
 {
+    ND_PRINT("sll2_if_print start ");
 	u_int caplen = h->caplen;
 	u_int length = h->len;
 	const struct sll2_header *sllp;
 	u_short hatype;
+    u_short my_hatype;
 	u_short ether_type;
 	int llc_hdrlen;
 	u_int hdrlen;
@@ -420,7 +429,20 @@ sll2_if_print(netdissect_options *ndo, const struct pcap_pkthdr *h, const u_char
 
 	sllp = (const struct sll2_header *)p;
 #ifdef HAVE_NET_IF_H
+
 	if_index = GET_BE_U_4(sllp->sll2_if_index);
+
+
+	my_hatype = GET_BE_U_2(sllp->sll2_hatype);
+
+
+    ND_PRINT("debug\n");
+    ND_PRINT("if_index=%d \n", if_index);
+    ND_PRINT("my_hatype=%d \n", my_hatype);
+	ND_PRINT("pkttype=%d \n", GET_U_1(sllp->sll2_pkttype));
+	/* ND_PRINT("pkttype=%s \n", sll_pkttype_values[GET_U_1(sllp->sll2_pkttype)]); */
+	ND_PRINT("pkttype=%s \n", tok2str(sll_pkttype_values, "?", GET_U_1(sllp->sll2_pkttype)));
+    ND_PRINT("debug end\n");
 	if (!if_indextoname(if_index, ifname))
 		strncpy(ifname, "?", 2);
 	ND_PRINT("%-5s ", ifname);
@@ -523,6 +545,8 @@ recurse:
 		goto recurse;
 	} else {
 		if (ethertype_print(ndo, ether_type, p, length, caplen, NULL, NULL) == 0) {
+            ND_PRINT("hoge2");
+            sll2_print(ndo, sllp, length + SLL2_HDR_LEN);
 			/* ether_type not known, print raw packet */
 			if (!ndo->ndo_eflag)
 				sll2_print(ndo, sllp, length + SLL2_HDR_LEN);
